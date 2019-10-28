@@ -1,0 +1,135 @@
+# Gnuplot script to generate the Stock to Flow graph 
+# based on daily price and total bitcoins from blockstream.com
+#
+set terminal svg size 1600,960
+set termopt enhanced
+set output "alltimeprice.svg"
+
+SLOPE=system("awk NR==1 < gpvars.txt")
+E2INTC=system("awk NR==2 < gpvars.txt")
+RMSE=system("awk NR==3 < gpvars.txt")
+R2=system("awk NR==4 < gpvars.txt")
+E2SE=system("awk NR==5 < gpvars.txt")
+TODAY=system("date +%F -d @`awk NR==6 < gpvars.txt`")
+S2FL=system("awk NR==7 < gpvars.txt")
+S2FH=system("awk NR==8 < gpvars.txt")
+YMAX=system("awk NR==9 < gpvars.txt")
+INTERC=system("awk NR==10 < gpvars.txt")
+
+# All time price plot
+set timefmt "%s"
+set xdata time
+set format x "%Y"
+set decimal locale
+set ytics ( '' 0.01, '$0.10' 0.1, '$1' 1, '$10' 10, '$100' 100, '$1000' 1000, \
+    '$10,000' 10000, '$100,000' 100000, '$1,000,000' 1000000, '$10,000,000' 10000000, \
+    '$100,000,000' 100000000)
+set xtics
+set y2tics ( "0.56" 10**.75/10, "1" 1, "1,78" 10**.25, "3.16" 10**.5, "5.62" 10**.75, "10" 10, \
+    "17.8" 10**.25*10, "31.6" 10**.5*10, "56.2" 10**.75*10, "100" 100, \
+    "178" 10**.25*100, "316" 10**.5*100 )
+set xrange [1262300400:1830294000]
+set yrange [0.01:YMAX]
+set y2range [S2FL:S2FH]
+set ylabel 'US$ per BTC' font "Helvetica,16"
+set y2label 'Stock-to-Flow' font "Helvetica,16"
+set logscale y
+set logscale y2
+set grid xtics ytics
+set key box opaque height 2 left
+set datafile separator ","
+set title "Bitcoin daily stock-to-flow and price" font "Helvetica Bold,30"
+
+LABEL1 = "Predicted price: S2F^{".SLOPE."} × ".E2INTC
+LABEL2 = "Price data: 2010-08-17 to ".TODAY
+set obj 1 rect at 1514761200, 0.03 size char strlen(LABEL1), char 3
+set label 1 at 1514761200, 0.04 LABEL1."\n".LABEL2 front center
+
+LABEL3 = "R^2 ln(S2F) vs ln(price): ".R2
+LABEL4 = "RMSE ln(S2F) vs ln(price): ".RMSE." (e^{RMSE} = ".E2SE.")"
+set obj 2 rect at 1704063600, 0.03 size char strlen(LABEL4), char 3
+set label 2 at 1704063600, 0.04 LABEL3."\n".LABEL4 front center
+
+plot \
+     "sftime.csv" using 1:4 axes x1y1 with lines lw 0 lc '0xeeeeff' notitle, \
+     "sftime.csv" using 1:6 axes x1y1 with lines lw 0 lc '0xeeeeff' notitle, \
+     "sftime.csv" using 1:4:6 axes x1y1 with filledcu fs solid 0.1 noborder notitle, \
+     "sftime.csv" using 1:3 axes x1y1 with lines lw 0 lc '0xddddff' notitle, \
+     "sftime.csv" using 1:5 axes x1y1 with lines lw 0 lc '0xddddff' notitle, \
+     "sftime.csv" using 1:3:5 axes x1y1 with filledcu fs solid 0.2 noborder notitle, \
+     "sftime.csv" using 1:2 axes x1y1 with lines lw 2 lc '0x808080' t "Stock to Flow", \
+     "sftime.csv" using 1:7 axes x1y1 with lines lw 2 lc 'red' t 'Daily US$'
+
+reset
+
+# Stock to flow regression
+set terminal svg size 1600,960
+set output 'stock2flow.svg'
+set format y "%#.1f"
+set format x "%#.1f"
+set ytics
+set xtics
+set grid xtics ytics
+set datafile separator ","
+set title "Bitcoin log stock-to-flow vs log price" font "Helvetica Bold,30"
+set xlabel 'ln(S2F)' font "Helvetica,16"
+set ylabel 'ln(US$/BTC)' font "Helvetica,16"
+set key box opaque height 2 left
+set pointsize 1.5
+
+f(x) =  a*x + b
+b = INTERC
+g(x) =  a*x + c
+c = INTERC+RMSE
+h(x) =  a*x + d
+a = SLOPE
+d = INTERC-RMSE
+plot "sfdata.csv" u 1:2 axes x1y1 t 'Daily price points' with points pt 1 lc 'blue',\
+     f(x) title sprintf("ln(S2F) = %s × ln(price) + %s",SLOPE,INTERC) lw 2 lc 'red',\
+     g(x) notitle lw 1 lc 'gray', \
+     h(x) notitle lw 1 lc 'gray'
+
+reset
+
+set terminal svg size 1600,960
+set termopt enhanced
+set output "detailprice.svg"
+
+DETMIN=system("awk NR==11 < gpvars.txt")
+DETMAX=system("awk NR==12 < gpvars.txt")
+DATEMIN=system("date +%F -d @`awk NR==11 < gpvars.txt`")
+O4XPOS=DETMIN+150*86400
+O4YPOS=GPVAL_DATA_Y_MIN*1.2
+set timefmt "%s"
+set xdata time
+set format x "%b\n%Y"
+set format y "$%.2f"
+set decimal locale
+set xtics
+set ytics ( '$500' 500, '$750' 750, '$1000' 1000, '$2500' 2500, '$5000' 5000, '$7500' 7500,\
+    '$10,000' 10000, '$25,000' 25000, '$50,000' 50000, '$75,000' 75000, '$100,000' 100000, \
+    '$250,000' 250000, '$500,000' 500000)
+set xrange [DETMIN:DETMAX]
+set ylabel 'US$ per BTC' font "Helvetica,16"
+#set xlabel 'Price data: '.DATEMIN."to".TODAY
+set logscale y
+set grid xtics ytics
+set key box opaque height 2 left
+#DETLAB1 = "Price data: ".DATEMIN." to ".TODAY
+#set obj 4 rect at O4XPOS, O4YPOS size char strlen(DETLAB1), char 2
+#set label 4 at O4XPOS, O4YPOS DETLAB1
+set datafile separator ","
+set title "Bitcoin daily stock-to-flow and price (2 years)\n{/Helvetica=18 Price data: " .\
+    DATEMIN." to ".TODAY."}"  font "Helvetica Bold,30"
+
+plot \
+     "sftime.csv" using 1:4 axes x1y1 with lines lw 0 lc '0xeeeeff' notitle, \
+     "sftime.csv" using 1:6 axes x1y1 with lines lw 0 lc '0xeeeeff' notitle, \
+     "sftime.csv" using 1:4:6 axes x1y1 with filledcu fs solid 0.1 noborder notitle, \
+     "sftime.csv" using 1:3 axes x1y1 with lines lw 0 lc '0xddddff' notitle, \
+     "sftime.csv" using 1:5 axes x1y1 with lines lw 0 lc '0xddddff' notitle, \
+     "sftime.csv" using 1:3:5 axes x1y1 with filledcu fs solid 0.2 noborder notitle, \
+     "sftime.csv" using 1:2 axes x1y1 with lines lw 2 lc '0x808080' t "S2F predicted price", \
+     "sftime.csv" using 1:7 axes x1y1 with lines lw 2 lc 'red' t 'Daily US$'
+
+
