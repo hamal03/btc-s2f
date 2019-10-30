@@ -15,7 +15,10 @@ S2FL=system("awk NR==7 < gpvars.txt")
 S2FH=system("awk NR==8 < gpvars.txt")
 YMAX=system("awk NR==9 < gpvars.txt")
 INTERC=system("awk NR==10 < gpvars.txt")
-BANNER="Model by PlanB (Twitter \\@100trillionUSD)\nChart by Rob Wolfram (Twitter \\@hamal03)"
+BANN1="Model by PlanB (Twitter \\@100trillionUSD)\n"
+BANN2="Chart by Rob Wolfram (Twitter \\@hamal03)\n"
+BANN3="Data retrieved from coinmetrics.io"
+BANNER=BANN1.BANN2.BANN3
 
 # All time price plot
 set timefmt "%s"
@@ -42,7 +45,7 @@ set datafile separator ","
 set title "Bitcoin daily stock-to-flow and price" font "Helvetica Bold,30"
 
 LABEL1 = "Predicted price: S2F^{".SLOPE."} × ".E2INTC
-LABEL2 = "Price data: 2010-08-17 to ".TODAY
+LABEL2 = "Price data: 2010-07-18 to ".TODAY
 set obj 1 rect at 1514761200, 0.03 size char strlen(LABEL1), char 3
 set label 1 at 1514761200, 0.04 LABEL1."\n".LABEL2 front center
 
@@ -52,7 +55,7 @@ set obj 2 rect at 1704063600, 0.03 size char strlen(LABEL4), char 3
 set label 2 at 1704063600, 0.04 LABEL3."\n".LABEL4 front center
 
 set obj 3 rect at 1420066800, YMAX/3 size char 41, char 4
-set label 3 at 1420066800, YMAX/2.5 BANNER front center font 'Helvetica Narrow,12'
+set label 3 at 1420066800, YMAX/2.1 BANNER front center font 'Helvetica Narrow,11'
 
 plot \
      "sftime.csv" using 1:4 axes x1y1 with lines lw 0 lc '0xeeeeff' notitle, \
@@ -81,7 +84,7 @@ set ylabel 'ln(US$/BTC)' font "Helvetica,16"
 set key box opaque height 2 left
 set pointsize 1.5
 set obj 4 rect at 1.0, -3.2 size char 41, char 4 front
-set label 4 at 1.0, -3.0 BANNER front center font 'Helvetica Narrow,12'
+set label 4 at 1.0, -2.9 BANNER front center font 'Helvetica Narrow,11'
 
 f(x) =  a*x + b
 b = INTERC
@@ -121,7 +124,7 @@ set logscale y
 set grid xtics ytics
 set key box opaque height 2 left
 set obj 5 rect at DETBANX, DETYMAX*.84 size char 41, char 4 front
-set label 5 at DETBANX, DETYMAX*.86 BANNER front center font 'Helvetica Narrow,12'
+set label 5 at DETBANX, DETYMAX*.9 BANNER front center font 'Helvetica Narrow,11'
 set datafile separator ","
 set title "Bitcoin daily stock-to-flow and price (2 years)\n{/Helvetica=18 Price data: " .\
     DATEMIN." to ".TODAY."}"  font "Helvetica Bold,30"

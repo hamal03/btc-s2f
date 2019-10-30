@@ -7,10 +7,10 @@ seems to follow a power law, based on its scarcity which can be expressed as
 the ratio between its stock and flow.
 
 I collect data on a granularity of 1 day from
-[blockchain.com](https://www.blockchain.com/charts) and calculated the flow
+[coinmetric.io](https://coinmetrics.io/community-network-data/) and calculate the ratio
 based on the real number of bitcoins that were mined for all of Bitcoin's
-history until the day of data gathering and extrapolated into the future based
-on mining 144 blocks per day. This data is kept in a SQLite database which is 
+history until the day of data gathering and extrapolate it into the future based
+on mining 144 blocks per day. The actual data is kept in a SQLite database which is 
 added to as needed. The data is used by a Python script to calculate the R squared
 value and the root mean sqared error of the logarithm of the stock to flow ratio
 and the logarithm of the bitcoin price in US dollars. The data points that are 
@@ -35,4 +35,4 @@ of the s2f and price logarithm values
 containing the graphs can be adjusted.
 
 These scripts are used daily to generate three charts that are presented on 
-a [this web page](https://s2f.hamal.nl/s2fcharts.html).
+[this web page](https://s2f.hamal.nl/s2fcharts.html).

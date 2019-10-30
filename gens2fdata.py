@@ -13,6 +13,7 @@ import numpy as np
 import sqlite3
 import requests
 import json
+from datetime import datetime
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 
@@ -29,26 +30,22 @@ bstr = cur.fetchall()
 maxdt = bstr[-1][0]
 
 if "--regen" not in sys.argv:
-    newpr = dict()
-    burl = "https://api.blockchain.info/charts/"
-    bapistr = '?timespan=all&format=json&start='
-    newprice = requests.get(burl+'market-price'+bapistr+str(bstr[-3][0]*86400))
-    newcoins = requests.get(burl+'total-bitcoins'+bapistr+str(bstr[-3][0]*86400))
-    if newprice.status_code != 200 or newcoins.status_code != 200:
-        print("Getting data from blockstream failed")
+    burl = "https://community-api.coinmetrics.io/v2/assets/btc/metricdata"
+    bapistr = '?metrics=PriceUSD%2CSplyCur&start='
+    tdago = datetime.fromtimestamp(bstr[-3][0]*86400).strftime('%F')
+    newdata = requests.get(burl+bapistr+tdago)
+    if newdata.status_code != 200:
+        print("Getting data from coinmetrics failed")
         sys.exit(1)
-    jprice = json.loads(newprice.text)
-    jcoins = json.loads(newcoins.text)
-    for bd in jprice['values']:
-        if int(bd['x']) <= maxdt*86400: continue
-        newpr[bd['x']] = bd['y']
-    if not len(newpr): sys.exit()
-    for bd in jcoins['values']:
-        if int(bd['x']) <= maxdt*86400: continue
-        if bd['x'] not in newpr: continue # skip spurious data
-        newentry = (int((bd['x']+43200)/86400), newpr[bd['x']], bd['y'])
+    jdata = json.loads(newdata.text)
+    for bd in jdata['metricData']['series']:
+        epdate = int(int(datetime.strptime(bd['time'], '%Y-%m-%dT%H:%M:%S.000Z').\
+            strftime('%s'))/86400+.5)
+        if epdate <= maxdt: continue
+        newentry = (epdate, float(bd['values'][0]), float(bd['values'][1]))
         cur.execute('insert into btc values (?,?,?)', newentry)
         bstr.append(newentry)
+    if maxdt == bstr[-1][0]: sys.exit()
     conn.commit()
     maxdt = bstr[-1][0]
 
