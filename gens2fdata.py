@@ -28,29 +28,29 @@ cur.execute('select * from btc order by date')
 bstr = cur.fetchall()
 maxdt = bstr[-1][0]
 
-burl = "https://api.blockchain.info/charts/"
-bapistr = '?timespan=all&format=json&start='
-newprice = requests.get(burl+'market-price'+bapistr+str(bstr[-3][0]*86400))
-newcoins = requests.get(burl+'total-bitcoins'+bapistr+str(bstr[-3][0]*86400))
-if newprice.status_code != 200 or newcoins.status_code != 200:
-    print("Getting data from blockstream failed")
-    sys.exit(1)
-jprice = json.loads(newprice.text)
-jcoins = json.loads(newcoins.text)
-newpr = dict()
-for bd in jprice['values']:
-    if int(bd['x']) <= maxdt*86400: continue
-    newpr[bd['x']] = bd['y']
-if not len(newpr) and "--regen" not in sys.argv:
-    sys.exit()
-for bd in jcoins['values']:
-    if int(bd['x']) <= maxdt*86400: continue
-    if bd['x'] not in newpr: continue # skip spurious data
-    newentry = (int((bd['x']+43200)/86400), newpr[bd['x']], bd['y'])
-    cur.execute('insert into btc values (?,?,?)', newentry)
-    bstr.append(newentry)
-conn.commit()
-maxdt = bstr[-1][0]
+if "--regen" not in sys.argv:
+    newpr = dict()
+    burl = "https://api.blockchain.info/charts/"
+    bapistr = '?timespan=all&format=json&start='
+    newprice = requests.get(burl+'market-price'+bapistr+str(bstr[-3][0]*86400))
+    newcoins = requests.get(burl+'total-bitcoins'+bapistr+str(bstr[-3][0]*86400))
+    if newprice.status_code != 200 or newcoins.status_code != 200:
+        print("Getting data from blockstream failed")
+        sys.exit(1)
+    jprice = json.loads(newprice.text)
+    jcoins = json.loads(newcoins.text)
+    for bd in jprice['values']:
+        if int(bd['x']) <= maxdt*86400: continue
+        newpr[bd['x']] = bd['y']
+    if not len(newpr): sys.exit()
+    for bd in jcoins['values']:
+        if int(bd['x']) <= maxdt*86400: continue
+        if bd['x'] not in newpr: continue # skip spurious data
+        newentry = (int((bd['x']+43200)/86400), newpr[bd['x']], bd['y'])
+        cur.execute('insert into btc values (?,?,?)', newentry)
+        bstr.append(newentry)
+    conn.commit()
+    maxdt = bstr[-1][0]
 
 dt = list()
 coins = list()
@@ -62,6 +62,10 @@ lnprice = list()
 
 p = 0 # halving period
 ncoins = 0 #number of coins in beginning of this period
+
+# Keep track of max and min values for placement of the 
+# banner in the second chart
+tyminmax = { 'ph': 0, 'sh': 0 }
 
 # Read available data and calculate stock to flow (current coins
 # divided by last year's additions.
@@ -81,6 +85,9 @@ for i in range(len(bstr)):
     lnsf.append([np.log(sf[j])])
     lnprice.append([np.log(price[j])])
     j += 1
+    if bstr[i][0] > maxdt - 732:
+        tyminmax['ph'] = max(tyminmax['ph'], price[-1])
+        tyminmax['sh'] = max(tyminmax['sh'], sf[-1])
 
 # extend the lists of coins, height and date into the future
 # based on 144 blocks per day
@@ -121,6 +128,9 @@ intercept = regression_model.intercept_[0]
 e2rmse = np.exp(rmse)
 e2intc = np.exp(intercept)
 
+# Calculate y-axis range maximum for 2 year detail chart
+detyh = max(tyminmax['ph'], tyminmax['sh']**slope*e2intc*e2rmse*2)
+
 # Gnuplot variable values
 gpvars = open('gpvars.txt', 'w')
 gpvars.write(str(round(slope, 2))+"\n")
@@ -135,6 +145,8 @@ gpvars.write(str(ymax)+"\n")
 gpvars.write(str(round(intercept, 2))+"\n")
 gpvars.write(str(int((maxdt-731)*86400))+"\n")
 gpvars.write(str(int((maxdt+61)*86400))+"\n")
+gpvars.write(str(detyh)+"\n") # High value of detail chart Y axis
+gpvars.write(str(int((maxdt-480)*86400))+"\n")
 gpvars.close()
 
 for i in range(len(price), len(dt)):
@@ -155,7 +167,7 @@ gpdata.close()
 sfdata = open("sfdata.csv", "w")
 for i in range(len(lnsf)):
     sfdata.write(str(lnsf[i][0]) + "," + str(lnprice[i][0]) +"\n")
-sfdata.close
+sfdata.close()
 
 # Shell script values for table
 idx = len(lnprice)-1

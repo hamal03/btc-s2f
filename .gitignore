@@ -1,0 +1,7 @@
+*.svg
+*.html
+*.sqlite
+gpvars.txt
+bashvar.sh
+*.csv
+**/*.sw?

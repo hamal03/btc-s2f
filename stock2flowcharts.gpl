@@ -15,6 +15,7 @@ S2FL=system("awk NR==7 < gpvars.txt")
 S2FH=system("awk NR==8 < gpvars.txt")
 YMAX=system("awk NR==9 < gpvars.txt")
 INTERC=system("awk NR==10 < gpvars.txt")
+BANNER="Model by PlanB (Twitter \\@100trillionUSD)\nChart by Rob Wolfram (Twitter \\@hamal03)"
 
 # All time price plot
 set timefmt "%s"
@@ -50,6 +51,9 @@ LABEL4 = "RMSE ln(S2F) vs ln(price): ".RMSE." (e^{RMSE} = ".E2SE.")"
 set obj 2 rect at 1704063600, 0.03 size char strlen(LABEL4), char 3
 set label 2 at 1704063600, 0.04 LABEL3."\n".LABEL4 front center
 
+set obj 3 rect at 1420066800, YMAX/3 size char 41, char 4
+set label 3 at 1420066800, YMAX/2.5 BANNER front center font 'Helvetica Narrow,12'
+
 plot \
      "sftime.csv" using 1:4 axes x1y1 with lines lw 0 lc '0xeeeeff' notitle, \
      "sftime.csv" using 1:6 axes x1y1 with lines lw 0 lc '0xeeeeff' notitle, \
@@ -76,6 +80,8 @@ set xlabel 'ln(S2F)' font "Helvetica,16"
 set ylabel 'ln(US$/BTC)' font "Helvetica,16"
 set key box opaque height 2 left
 set pointsize 1.5
+set obj 4 rect at 1.0, -3.2 size char 41, char 4 front
+set label 4 at 1.0, -3.0 BANNER front center font 'Helvetica Narrow,12'
 
 f(x) =  a*x + b
 b = INTERC
@@ -97,9 +103,9 @@ set output "detailprice.svg"
 
 DETMIN=system("awk NR==11 < gpvars.txt")
 DETMAX=system("awk NR==12 < gpvars.txt")
+DETYMAX=system("awk NR==13 < gpvars.txt")
+DETBANX=system("awk NR==14 < gpvars.txt")
 DATEMIN=system("date +%F -d @`awk NR==11 < gpvars.txt`")
-O4XPOS=DETMIN+150*86400
-O4YPOS=GPVAL_DATA_Y_MIN*1.2
 set timefmt "%s"
 set xdata time
 set format x "%b\n%Y"
@@ -111,13 +117,11 @@ set ytics ( '$500' 500, '$750' 750, '$1000' 1000, '$2500' 2500, '$5000' 5000, '$
     '$250,000' 250000, '$500,000' 500000)
 set xrange [DETMIN:DETMAX]
 set ylabel 'US$ per BTC' font "Helvetica,16"
-#set xlabel 'Price data: '.DATEMIN."to".TODAY
 set logscale y
 set grid xtics ytics
 set key box opaque height 2 left
-#DETLAB1 = "Price data: ".DATEMIN." to ".TODAY
-#set obj 4 rect at O4XPOS, O4YPOS size char strlen(DETLAB1), char 2
-#set label 4 at O4XPOS, O4YPOS DETLAB1
+set obj 5 rect at DETBANX, DETYMAX*.84 size char 41, char 4 front
+set label 5 at DETBANX, DETYMAX*.86 BANNER front center font 'Helvetica Narrow,12'
 set datafile separator ","
 set title "Bitcoin daily stock-to-flow and price (2 years)\n{/Helvetica=18 Price data: " .\
     DATEMIN." to ".TODAY."}"  font "Helvetica Bold,30"
