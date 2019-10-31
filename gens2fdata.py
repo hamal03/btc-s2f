@@ -39,6 +39,7 @@ if "--regen" not in sys.argv:
         sys.exit(1)
     jdata = json.loads(newdata.text)
     for bd in jdata['metricData']['series']:
+        if bd['values'][0] is None or bd['values'][1] is None: break
         epdate = int(int(datetime.strptime(bd['time'], '%Y-%m-%dT%H:%M:%S.000Z').\
             strftime('%s'))/86400+.5)
         if epdate <= maxdt: continue
@@ -178,5 +179,5 @@ bashvar.write("SFPP2="+str(round(float(sf[idx]**slope*e2intc*e2rmse*2), 2))+"\n"
 bashvar.write("SFPM2="+str(round(float(sf[idx]**slope*e2intc/e2rmse/2), 2))+"\n")
 bashvar.close()
 
-print("Data files created")
+if "--quiet" not in sys.argv:  print("Data files created")
 

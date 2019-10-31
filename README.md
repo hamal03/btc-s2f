@@ -36,3 +36,18 @@ containing the graphs can be adjusted.
 
 These scripts are used daily to generate three charts that are presented on 
 [this web page](https://s2f.hamal.nl/s2fcharts.html).
+
+## Tech details
+
+The python script is using python 3.6 and the following extra modules:
+* numpy
+* requests
+* sklearn.linear_model
+* sklearn.metrics
+
+I installed it all in a virtualenv
+
+Gnuplot is version 5.0 (running on Ubuntu Xenial). I tried it with gnuplot 4.6 on EL7 
+but the results weren't quite stellar...
+
+
