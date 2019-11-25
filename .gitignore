@@ -1,4 +1,5 @@
 *.svg
+*.png
 *.html
 *.sqlite
 gpvars.txt
