@@ -1,8 +1,9 @@
+**/*.sw?
 *.svg
 *.png
 *.html
 *.sqlite
-gpvars.txt
-bashvar.sh
+*.txt
 *.csv
-**/*.sw?
+*.json
+bashvar.sh
