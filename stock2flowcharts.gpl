@@ -94,7 +94,7 @@ h(x) =  a*x + d
 a = SLOPE
 d = INTERC-RMSE
 plot "sfdata.csv" u 1:2 axes x1y1 t 'Daily price points' with points pt 1 lc 'blue',\
-     f(x) title sprintf("ln(S2F) = %s × ln(price) + %s",SLOPE,INTERC) lw 2 lc 'red',\
+     f(x) title sprintf("ln(price) = %s × ln(S2F) + %s",SLOPE,INTERC) lw 2 lc 'red',\
      g(x) notitle lw 1 lc 'gray', \
      h(x) notitle lw 1 lc 'gray'
 
