@@ -108,6 +108,9 @@ DETMIN=system("awk NR==11 < gpvars.txt")
 DETMAX=system("awk NR==12 < gpvars.txt")
 DETYMAX=system("awk NR==13 < gpvars.txt")
 DETBANX=system("awk NR==14 < gpvars.txt")
+DETYMIN=system("awk NR==15 < gpvars.txt")
+DETYBOX=system("awk NR==16 < gpvars.txt")
+DETYTXT=system("awk NR==17 < gpvars.txt")
 DATEMIN=system("date +%F -d @`awk NR==11 < gpvars.txt`")
 set timefmt "%s"
 set xdata time
@@ -119,12 +122,13 @@ set ytics ( '$500' 500, '$750' 750, '$1000' 1000, '$2500' 2500, '$5000' 5000, '$
     '$10,000' 10000, '$25,000' 25000, '$50,000' 50000, '$75,000' 75000, '$100,000' 100000, \
     '$250,000' 250000, '$500,000' 500000)
 set xrange [DETMIN:DETMAX]
+set yrange [DETYMIN:DETYMAX]
 set ylabel 'US$ per BTC' font "Helvetica,16"
 set logscale y
 set grid xtics ytics
 set key box opaque height 2 left
-set obj 5 rect at DETBANX, DETYMAX*.84 size char 41, char 4 front
-set label 5 at DETBANX, DETYMAX*.9 BANNER front center font 'Helvetica Narrow,11'
+set obj 5 rect at DETBANX, DETYBOX size char 41, char 4 front
+set label 5 at DETBANX, DETYTXT BANNER front center font 'Helvetica Narrow,11'
 set datafile separator ","
 set title "Bitcoin daily stock-to-flow and price (2 years)\n{/Helvetica=18 Price data: " .\
     DATEMIN." to ".TODAY."}"  font "Helvetica Bold,30"

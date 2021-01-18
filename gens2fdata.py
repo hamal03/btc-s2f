@@ -20,6 +20,10 @@ from sklearn.metrics import mean_squared_error, r2_score
 # gnuplot price range max
 ymax = 5000000
 
+# Needed for position of te text box on the detail chart
+boxfact=.942
+textfact=.963
+
 # Date to which we exend the blocks based on 144 blocks per day
 extendto = 1798758000 # 2027-01-01
 
@@ -61,10 +65,6 @@ lnprice = list()
 p = 0 # halving period
 ncoins = 0 #number of coins in beginning of this period
 
-# Keep track of max and min values for placement of the 
-# banner in the second chart
-tyminmax = { 'ph': 0, 'sh': 0 }
-
 # Read available data and calculate stock to flow (current coins
 # divided by last year's additions.
 j = 0 # use second index to take skipped records into account
@@ -83,13 +83,12 @@ for i in range(len(bstr)):
     lnsf.append([np.log(sf[j])])
     lnprice.append([np.log(price[j])])
     j += 1
-    if bstr[i][0] > maxdt - 732:
-        tyminmax['ph'] = max(tyminmax['ph'], price[-1])
-        tyminmax['sh'] = max(tyminmax['sh'], sf[-1])
+
+# Remember the current length of sf[]
+lstsf=len(sf)
 
 # extend the lists of coins, height and date into the future
 # based on 144 blocks per day
-
 while dt[-1] < extendto:
     dt.append(dt[-1]+86400)
     height.append(height[-1]+144)
@@ -99,16 +98,6 @@ while dt[-1] < extendto:
         p += 1
     coins.append(ncoins+(height[-1]%210000)*50/2**p)
     sf.append(coins[-1]/(coins[-1]-coins[-361]))
-
-# This is disabled, it wrongfully calculated S2F based
-# on the added coins in the future
-## Calculate Stock2Flow, ln(Stock2Flow) and ln(price)
-## ln() values should be in 2D list for sklearn
-#for i in range(len(dt)-366):
-#    sf.append(coins[i]/(coins[i+365]-coins[i]))
-#    if i < len(bstr):
-#        lnsf.append([np.log(sf[i])])
-#        lnprice.append([np.log(price[i])])
 
 # scikit-learn regression
 # Model initialization
@@ -126,8 +115,21 @@ intercept = regression_model.intercept_[0]
 e2rmse = np.exp(rmse)
 e2intc = np.exp(intercept)
 
-# Calculate y-axis range maximum for 2 year detail chart
-detyh = max(tyminmax['ph'], tyminmax['sh']**slope*e2intc*e2rmse*2)
+# Calculate min and max Y values for detail chart
+detymax = 0
+detymin = 10**15
+for i in range(maxdt-731, maxdt):
+    detymax = max(detymax, sf[lstsf+i-maxdt-1]**slope*e2intc*e2rmse*2, price[i-maxdt-1])
+    detymin = min(detymin, sf[lstsf+i-maxdt-1]**slope*e2intc/e2rmse/2, price[i-maxdt-1])
+for i in range(maxdt, maxdt+61):
+    detymax = max(detymax, sf[lstsf+i-maxdt-1]**slope*e2intc*e2rmse*2)
+    detymin = min(detymin, sf[lstsf+i-maxdt-1]**slope*e2intc/e2rmse/2)
+detymax *= 1.5
+detymin /= 1.5
+# Calculate position of text & box
+yrange = np.log(detymax/detymin)
+detybox = np.exp(boxfact*yrange) * detymin
+detytxt = np.exp(textfact*yrange) * detymin
 
 # Gnuplot variable values
 gpvars = open('gpvars.txt', 'w')
@@ -143,8 +145,11 @@ gpvars.write(str(ymax)+"\n")
 gpvars.write(str(round(intercept, 2))+"\n")
 gpvars.write(str(int((maxdt-731)*86400))+"\n")
 gpvars.write(str(int((maxdt+61)*86400))+"\n")
-gpvars.write(str(detyh)+"\n") # High value of detail chart Y axis
+gpvars.write(str(detymax)+"\n") # High value of detail chart Y axis
 gpvars.write(str(int((maxdt-480)*86400))+"\n")
+gpvars.write(str(detymin)+"\n") # Low value of detail chart Y axis
+gpvars.write(str(detybox)+"\n") # Y value of box object
+gpvars.write(str(detytxt)+"\n") # Y value of box label
 gpvars.close()
 
 for i in range(len(price), len(dt)):
