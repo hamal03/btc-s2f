@@ -25,7 +25,8 @@ boxfact=.942
 textfact=.963
 
 # Date to which we exend the blocks based on 144 blocks per day
-extendto = 1798758000 # 2027-01-01
+# Extend five years in the future
+extendto =  int(datetime.now().timestamp()) + 153878400
 
 conn = sqlite3.connect('bcinfo.sqlite')
 cur = conn.cursor()
@@ -34,20 +35,20 @@ bstr = cur.fetchall()
 maxdt = bstr[-1][0]
 
 if "--regen" not in sys.argv:
-    burl = "https://community-api.coinmetrics.io/v2/assets/btc/metricdata"
-    bapistr = '?metrics=PriceUSD%2CSplyCur&start='
+    burl = 'https://community-api.coinmetrics.io/v4/timeseries/asset-metrics'
+    bapistr = '?assets=btc&frequency=1d&metrics=PriceUSD%2CSplyCur&start_time='
     tdago = datetime.fromtimestamp(bstr[-3][0]*86400).strftime('%F')
     newdata = requests.get(burl+bapistr+tdago)
     if newdata.status_code != 200:
         print("Getting data from coinmetrics failed")
         sys.exit(1)
     jdata = json.loads(newdata.text)
-    for bd in jdata['metricData']['series']:
-        if bd['values'][0] is None or bd['values'][1] is None: break
-        epdate = int(int(datetime.strptime(bd['time'], '%Y-%m-%dT%H:%M:%S.000Z').\
+    for bd in jdata['data']:
+        if bd['PriceUSD'] is None or bd['SplyCur'] is None: break
+        epdate = int(int(datetime.strptime(bd['time'], '%Y-%m-%dT%H:%M:%S.000000000Z').\
             strftime('%s'))/86400+.5)
         if epdate <= maxdt: continue
-        newentry = (epdate, float(bd['values'][0]), float(bd['values'][1]))
+        newentry = (epdate, float(bd['PriceUSD']), float(bd['SplyCur']))
         cur.execute('insert into btc values (?,?,?)', newentry)
         bstr.append(newentry)
     if maxdt == bstr[-1][0]: sys.exit()
@@ -77,7 +78,7 @@ for i in range(len(bstr)):
         ncoins += 210000*50/2**p
         p += 1
     height.append(210000*p+(coins[j]-ncoins)*2**p/50)
-    sf.append(coins[j]/(coins[j]-bstr[i-360][2]))
+    sf.append(coins[j]/(coins[j]-bstr[i-365][2]))
     # Calculate ln(S2F) and ln(price)
     # ln() values should be in 2D list for sklearn
     lnsf.append([np.log(sf[j])])
