@@ -17,8 +17,19 @@ from datetime import datetime
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 
+# Create sqlite db if it doesn't exist
+try:
+    dbfr = open('bcinfo.sqlite', "r")
+    dbfr.close()
+except:
+    dbfw = open('bcinfo.sqlite', "w")
+    dbfw.close()
+
 # gnuplot price range max
 ymax = 5000000
+
+# option to run script forced
+forced = False
 
 # Needed for position of te text box on the detail chart
 boxfact=.942
@@ -30,28 +41,53 @@ extendto =  int(datetime.now().timestamp()) + 153878400
 
 conn = sqlite3.connect('bcinfo.sqlite')
 cur = conn.cursor()
+
+# Create table if it doesn't exist
+cur.execute(' SELECT count(name) FROM sqlite_master WHERE type="table" AND name="btc" ')
+if cur.fetchone()[0] == 0:
+    # Table does not exist
+    cur.execute('''
+        CREATE TABLE btc ( date int PRIMARY KEY, price float, coins float );
+    ''')
+    conn.commit()
+
 cur.execute('select * from btc order by date')
 bstr = cur.fetchall()
-maxdt = bstr[-1][0]
+if len(bstr) > 0 :
+    maxdt = bstr[-1][0]
+else:
+    # day before genesis block
+    maxdt = 14247
 
 if "--regen" not in sys.argv:
+    forced = forced or "--force" in sys.argv
+    # get 100 entries at a time
+    today = int(int(datetime.now().strftime('%s'))/86400)
+    loopval = maxdt-2
     burl = 'https://community-api.coinmetrics.io/v4/timeseries/asset-metrics'
     bapistr = '?assets=btc&frequency=1d&metrics=PriceUSD%2CSplyCur&start_time='
-    tdago = datetime.fromtimestamp(bstr[-3][0]*86400).strftime('%F')
-    newdata = requests.get(burl+bapistr+tdago)
-    if newdata.status_code != 200:
-        print("Getting data from coinmetrics failed")
-        sys.exit(1)
-    jdata = json.loads(newdata.text)
-    for bd in jdata['data']:
-        if bd['PriceUSD'] is None or bd['SplyCur'] is None: break
-        epdate = int(int(datetime.strptime(bd['time'], '%Y-%m-%dT%H:%M:%S.000000000Z').\
-            strftime('%s'))/86400+.5)
-        if epdate <= maxdt: continue
-        newentry = (epdate, float(bd['PriceUSD']), float(bd['SplyCur']))
-        cur.execute('insert into btc values (?,?,?)', newentry)
-        bstr.append(newentry)
-    if maxdt == bstr[-1][0]: sys.exit()
+    curstock = 0
+    while loopval <= today:
+        startdate = datetime.fromtimestamp(loopval*86400).strftime('%F')
+        enddate = datetime.fromtimestamp((loopval+100)*86400).strftime('%F')
+        newdata = requests.get(burl+bapistr+startdate+'&end_time='+enddate)
+        if newdata.status_code != 200:
+            print("Getting data from coinmetrics failed")
+            sys.exit(1)
+        jdata = json.loads(newdata.text)
+        for bd in jdata['data']:
+            if bd['PriceUSD'] is None: bd['PriceUSD'] = 0
+            if bd['SplyCur'] is None: bd['SplyCur'] = 0
+            if float(bd['SplyCur']) < curstock: continue
+            curstock = float(bd['SplyCur'])
+            epdate = int(int(datetime.strptime(bd['time'], '%Y-%m-%dT%H:%M:%S.000000000Z').\
+                strftime('%s'))/86400+.5)
+            if epdate <= maxdt: continue
+            newentry = (epdate, float(bd['PriceUSD']), float(bd['SplyCur']))
+            cur.execute('insert or replace into btc values (?,?,?)', newentry)
+            bstr.append(newentry)
+        loopval += 98
+    if maxdt == bstr[-1][0] and not forced: sys.exit()
     conn.commit()
     maxdt = bstr[-1][0]
 
